@@ -1,0 +1,45 @@
+---
+#play book para la instalacion de wordpress 
+#configuracion del mismo, también la configuracion
+#de nginx
+- hosts: all
+#varibles a usar
+  vars:
+    mysql_root_password: root
+    local_root: files/
+#tareas para usar en esta provision
+  tasks:
+#instalacion del  software necesario, con la instalacion del paquete de
+# "wordpress" dejamos instalado  todo lo relacionado  con Apache2, PHP, mysql-client
+# nos hace falta instalar la bbdd(mysql-server), compresion y descompresion y ejecucion de script
+  - name: instalacion wordpress
+    apt: 
+      name: "{{packages}}" 
+      state: installed
+    vars: 
+      packages:
+      - wordpress
+      - zip 
+      - unzip
+#      - nginx
+    become: true
+#descargamos wordpress y la dejamos en la parte web de apache
+  - name: Instalar wordpress 
+    unarchive:
+      src: https://es.wordpress.org/wordpress-5.0.3-es_ES.zip
+      dest: /var/www/html/
+      remote_src: yes
+    become: true
+#copiamos datos  para wordpress 
+  - name: archivo de configuracion de worpress para acceso dee bbdd 
+    copy:
+      src: "{{local_root}}wp-config.php"
+      dest: /var/www/html/wordpress/
+      mode: 0777
+    become: true
+#reniciamos el servicio
+  - name: Reload service httpd, in all cases
+    service:
+      name: apache2
+      state: reloaded
+    become: true

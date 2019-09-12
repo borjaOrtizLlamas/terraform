@@ -1,0 +1,35 @@
+{
+    "variables": {
+        "service_account_json": "./master-devops-5114db387441.json",
+        "project_id": "master-devops",
+				"machine_des_var": "maquina prueba",
+				"image_name_var": "wordpress"
+     },
+	"builders": [ 
+        {
+			"type": "googlecompute",
+			"project_id": "{{user `project_id`}}",
+			"machine_type": "f1-micro",
+			"image_description": "{{user `machine_des_var`}}",
+			"image_name": "{{ user `image_name_var`}}",
+			"disk_size": 16,
+			"disk_type": "pd-ssd",
+			"source_image_family": "ubuntu-1404-lts", 
+			"account_file": "{{ user `service_account_json`}}",
+			"ssh_username": "root",	
+			"zone": "us-central1-a",
+			"subnetwork":"default",
+			"network":"default"
+		}
+     ],
+	"provisioners": [
+		{
+		  "type": "shell",
+          "script": "scrip.sh"
+		},{
+            "type": "ansible",
+            "playbook_file": "./ansible/playbook.yml"
+        }
+	
+      ]
+}

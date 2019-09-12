@@ -1,0 +1,81 @@
+---
+#play book para la instalacion de wordpress 
+#configuracion del mismo, también la configuracion
+#de nginx
+- hosts: all
+#varibles a usar
+  vars:
+    mysql_root_password: root
+    local_root: files/
+#tareas para usar en esta provision
+  tasks:
+#para asegurarnos que cuando aparezca en  la maquina virtual de ubuntu  
+#`la pregunta de la contraseña ansible la contraseña
+  - name: Especificando root pass
+    debconf: 
+      name: 'mysql-server' 
+      question: 'mysql-server/root_password' 
+      value: '{{mysql_root_password | quote}}' 
+      vtype: 'password'
+    become: true  
+  - name: Especificando MySQL root password antes de la instalacion
+    debconf: 
+      name: 'mysql-server'
+      question: 'mysql-server/root_password_again' 
+      value: '{{mysql_root_password | quote}}' 
+      vtype: 'password'
+    become: true
+# instalacion de mysql y  sofware necesario
+  - name: instalacion wordpress
+    apt: 
+      name: "{{packages}}" 
+      state: installed
+    vars: 
+      packages:
+      - mysql-server
+      - python-mysqldb
+      - zip 
+      - unzip
+    become: true
+#Copiamos el archivo de configuracion con el que accedera anseible a mysql
+  - name: configuracion de mysql
+    copy:
+      src: "{{local_root}}.my.cnf"
+      dest: /etc/.my.cnf
+    become: true
+#Copiamos el archivo de configuracion de MySQL para que se puedan acceder  desde otros servidores
+  - name: configuracion de mysql
+    copy:
+      src: "{{local_root}}my.cnf"
+      dest: /etc/mysql/my.cnf
+    become: true
+#iniciamos el servicio de MySQL
+  - name: Iniciamos la bbdd de  mysql
+    service:
+      name: mysql
+      state: started
+    become: true
+#Subimos script de generacion de la dataBase
+  - name: Script para generar bbdd de wordpress de prueba
+    copy:
+      src: "{{local_root}}mysqlWordpress.sql"
+      dest: /tmp
+#script con la configuracion       
+  - name: ejecucion de script como prueba
+    mysql_db:
+      state: import
+      name: all
+      target: /tmp/mysqlWordpress.sql
+      login_password: root
+      login_user: root 
+#usuario con el que accedera wordpress
+  - name: Create database user with password and all database privileges and 'WITH GRANT OPTION'
+    mysql_user:
+      name: wordpress
+      password: wordpress
+      priv: '*.*:ALL,GRANT'
+      state: present
+      host: "%"
+      login_user: root 
+      login_password: "{{mysql_root_password}}"
+    become: true
